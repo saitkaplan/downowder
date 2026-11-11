@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picture frame with a download arrow below it. Drawn inside the adaptive
+     icon's 66 dp safe zone (21-87) of the 108 dp canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Frame -->
+    <path
+        android:pathData="M36,28 H72 A4,4 0 0 1 76,32 V54 A4,4 0 0 1 72,58 H36 A4,4 0 0 1 32,54 V32 A4,4 0 0 1 36,28 Z"
+        android:strokeWidth="4"
+        android:strokeColor="@color/ic_launcher_foreground"
+        android:strokeLineJoin="round" />
+
+    <!-- Hills -->
+    <path
+        android:pathData="M37,53 L47,42 L54,49 L59,44 L71,53"
+        android:strokeWidth="3"
+        android:strokeColor="@color/ic_launcher_foreground"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Sun -->
+    <path
+        android:fillColor="@color/ic_launcher_foreground"
+        android:pathData="M64,37 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+
+    <!-- Arrow and tray -->
+    <path
+        android:pathData="M54,62 V76 M47,69 L54,76 L61,69 M40,82 H68"
+        android:strokeWidth="4"
+        android:strokeColor="@color/ic_launcher_foreground"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

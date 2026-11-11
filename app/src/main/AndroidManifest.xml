@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  No permissions on purpose: MediaStore lets an app add its own files to
+  Download/ without storage access, and nothing here needs the network.
+  No LAUNCHER entry: the app only shows up in the share sheet.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_label"
+        android:supportsRtl="true">
+
+        <!--
+          The shared file's read grant belongs to this activity, so it stays
+          alive (invisible) until every copy is done. configChanges keeps a
+          rotation from recreating it mid-copy; excludeFromRecents keeps it
+          out of the recent apps list.
+        -->
+        <activity
+            android:name=".SaveActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:theme="@style/Theme.DowNowder.Invisible">
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <!-- Files sent as documents (e.g. WhatsApp) often arrive with
+                     this generic type; the real type is checked in code. -->
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
