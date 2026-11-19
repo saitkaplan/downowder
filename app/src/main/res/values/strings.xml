@@ -2,7 +2,7 @@
 <!-- The default strings are Turkish (the first language of the app); tools:locale
      tells lint so, for plural and spelling checks. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="tr">
-    <string name="app_label">Galeriye Kaydet</string>
+    <string name="app_label">Kaydet</string>
 
     <string name="saved_one">Kaydedildi</string>
     <plurals name="saved_many">
@@ -15,10 +15,10 @@
     </plurals>
 
     <string name="error_nothing_shared">Kaydedilecek dosya bulunamadı</string>
-    <string name="error_unsupported">Bu dosya görsel ya da video değil</string>
+    <string name="error_unsupported">Bu dosya türü desteklenmiyor</string>
     <plurals name="error_unsupported_many">
-        <item quantity="one">%d dosya görsel ya da video değil</item>
-        <item quantity="other">%d dosya görsel ya da video değil</item>
+        <item quantity="one">%d dosyanın türü desteklenmiyor</item>
+        <item quantity="other">%d dosyanın türü desteklenmiyor</item>
     </plurals>
     <string name="error_failed">Dosya kaydedilemedi</string>
     <plurals name="error_failed_many">

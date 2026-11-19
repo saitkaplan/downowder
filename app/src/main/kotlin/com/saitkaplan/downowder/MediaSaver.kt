@@ -18,14 +18,21 @@ import java.util.Locale
 internal enum class SaveResult { SAVED, UNSUPPORTED, FAILED }
 
 /**
- * Copies a shared image or video into Download/DowNowder/, byte for byte.
+ * Copies a shared image, video or PDF into Download/DowNowder/, byte for byte.
  *
  * The file is never decoded: quality, resolution and metadata (EXIF) stay
  * exactly as sent. The entry is added as pending, so no other app sees a
  * half-written file, and it is removed again if the copy does not finish.
  * When the name is already taken, MediaStore picks a free one ("name (1).jpg").
+ *
+ * Android hides a photo's location from apps without ACCESS_MEDIA_LOCATION:
+ * a file opened through MediaStore arrives with its GPS bytes zeroed. With
+ * [canReadLocation] the original is requested instead, so the copy keeps it.
  */
-internal class MediaSaver(private val resolver: ContentResolver) {
+internal class MediaSaver(
+    private val resolver: ContentResolver,
+    private val canReadLocation: Boolean,
+) {
 
     /**
      * Saves one file. A sender's content provider can throw any runtime
@@ -43,7 +50,8 @@ internal class MediaSaver(private val resolver: ContentResolver) {
 
     private suspend fun saveOrThrow(source: Uri): SaveResult {
         val displayName = queryDisplayName(source)
-        val header = readHeader(source) ?: return SaveResult.FAILED
+        val readable = original(source)
+        val header = readHeader(readable) ?: return SaveResult.FAILED
         val type = MediaTypes.resolve(resolver.getType(source), displayName, header)
             ?: return SaveResult.UNSUPPORTED
 
@@ -58,7 +66,7 @@ internal class MediaSaver(private val resolver: ContentResolver) {
         // Any failure leaves done false; the pending entry is removed below.
         var done = false
         try {
-            copy(source, target)
+            copy(readable, target)
             val publish = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
             done = resolver.update(target, publish, null, null) == 1
         } catch (e: CancellationException) {
@@ -76,6 +84,23 @@ internal class MediaSaver(private val resolver: ContentResolver) {
             if (!done) runCatching { resolver.delete(target, null, null) }
         }
         return if (done) SaveResult.SAVED else SaveResult.FAILED
+    }
+
+    // Only MediaStore's own URIs have an "original"; other providers (e.g.
+    // WhatsApp's) send the file untouched anyway. If MediaStore refuses, the
+    // file is still saved, without its location.
+    private fun original(source: Uri): Uri {
+        if (!canReadLocation || source.authority != MediaStore.AUTHORITY) return source
+        val original = MediaStore.setRequireOriginal(source)
+        return try {
+            resolver.openFileDescriptor(original, "r")?.use { original } ?: source
+        } catch (e: UnsupportedOperationException) {
+            source
+        } catch (e: SecurityException) {
+            source
+        } catch (e: IOException) {
+            source
+        }
     }
 
     private fun logFailure(error: Exception) {
@@ -136,7 +161,11 @@ internal class MediaSaver(private val resolver: ContentResolver) {
     // none or one that does not match the content (e.g. "photo.bin").
     private fun fileName(displayName: String?, type: MediaType): String {
         if (displayName == null) {
-            val prefix = if (type.kind == MediaKind.IMAGE) "IMG" else "VID"
+            val prefix = when (type.kind) {
+                MediaKind.IMAGE -> "IMG"
+                MediaKind.VIDEO -> "VID"
+                MediaKind.DOCUMENT -> "DOC"
+            }
             val stamp = LocalDateTime.now().format(STAMP_FORMAT)
             return "${prefix}_$stamp.${type.extension}"
         }

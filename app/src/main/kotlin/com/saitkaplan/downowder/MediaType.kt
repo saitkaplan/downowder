@@ -3,12 +3,12 @@ package com.saitkaplan.downowder
 import android.webkit.MimeTypeMap
 import java.util.Locale
 
-internal enum class MediaKind { IMAGE, VIDEO }
+internal enum class MediaKind { IMAGE, VIDEO, DOCUMENT }
 
 internal data class MediaType(val mime: String, val kind: MediaKind, val extension: String)
 
 /**
- * Decides whether a shared file is an image or a video.
+ * Decides whether a shared file is an image, a video or a PDF document.
  *
  * Order: a specific type declared by the sender, then the file's first bytes,
  * then the file name's extension. Files sent as documents often arrive as
@@ -25,6 +25,7 @@ internal object MediaTypes {
 
     private fun fromMime(mime: String?): MediaType? {
         val clean = mime?.lowercase(Locale.ROOT)?.substringBefore(';')?.trim() ?: return null
+        if (clean == PDF_MIME) return document()
         val kind = when {
             clean.startsWith("image/") -> MediaKind.IMAGE
             clean.startsWith("video/") -> MediaKind.VIDEO
@@ -44,6 +45,7 @@ internal object MediaTypes {
     }
 
     private fun sniff(h: ByteArray): MediaType? = when {
+        h.ascii(0, 5) == "%PDF-" -> document()
         h.startsWith(0xFF, 0xD8, 0xFF) -> image("image/jpeg", "jpg")
         h.startsWith(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A) -> image("image/png", "png")
         h.ascii(0, 6) == "GIF87a" || h.ascii(0, 6) == "GIF89a" -> image("image/gif", "gif")
@@ -83,6 +85,10 @@ internal object MediaTypes {
     private fun image(mime: String, extension: String) = MediaType(mime, MediaKind.IMAGE, extension)
 
     private fun video(mime: String, extension: String) = MediaType(mime, MediaKind.VIDEO, extension)
+
+    private const val PDF_MIME = "application/pdf"
+
+    private fun document() = MediaType(PDF_MIME, MediaKind.DOCUMENT, "pdf")
 
     private fun ByteArray.startsWith(vararg bytes: Int): Boolean =
         size >= bytes.size && bytes.indices.all { (this[it].toInt() and 0xFF) == bytes[it] }

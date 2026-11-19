@@ -1,7 +1,11 @@
 package com.saitkaplan.downowder
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,18 +21,43 @@ import kotlinx.coroutines.withContext
 class SaveActivity : Activity() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var uris: List<Uri> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val uris = intent.sharedUris()
+        uris = intent.sharedUris()
         if (uris.isEmpty()) {
             showToast(getString(R.string.error_nothing_shared))
             finish()
             return
         }
 
-        val saver = MediaSaver(contentResolver)
+        // A photo from the gallery keeps its location only with this
+        // permission. It is asked for once, and only when such a photo is
+        // shared; denied, the files are still saved, without location.
+        val fromGallery = uris.any { it.authority == MediaStore.AUTHORITY }
+        if (fromGallery && !canReadLocation()) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_MEDIA_LOCATION), LOCATION_REQUEST)
+        } else {
+            startSaving()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_REQUEST) startSaving()
+    }
+
+    private fun canReadLocation(): Boolean =
+        checkSelfPermission(Manifest.permission.ACCESS_MEDIA_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    private fun startSaving() {
+        val saver = MediaSaver(contentResolver, canReadLocation())
         scope.launch {
             val results = withContext(Dispatchers.IO) { uris.map { saver.save(it) } }
             showToast(summary(results))
@@ -70,5 +99,9 @@ class SaveActivity : Activity() {
     // The application context keeps the toast on screen after finish().
     private fun showToast(text: String) {
         Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
+    }
+
+    private companion object {
+        const val LOCATION_REQUEST = 1
     }
 }
